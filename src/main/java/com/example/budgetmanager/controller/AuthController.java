@@ -1,5 +1,6 @@
 package com.example.budgetmanager.controller;
 
+import com.example.budgetmanager.dto.AuthRequest;
 import com.example.budgetmanager.util.JwtUtil;
 import org.springframework.security.authentication.AuthenticationManager;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
@@ -22,9 +23,11 @@ public class AuthController {
     }
 
     @PostMapping("/login")
-    public String login(@RequestParam String username, @RequestParam String password) {
-        authenticationManager.authenticate(new UsernamePasswordAuthenticationToken(username, password));
-        UserDetails userDetails = userDetailsService.loadUserByUsername(username);
+    public String login(@RequestBody AuthRequest authRequest) {
+        authenticationManager.authenticate(
+                new UsernamePasswordAuthenticationToken(authRequest.getUsername(), authRequest.getPassword())
+        );
+        UserDetails userDetails = userDetailsService.loadUserByUsername(authRequest.getUsername());
         return jwtUtil.generateToken(userDetails.getUsername());
     }
 }

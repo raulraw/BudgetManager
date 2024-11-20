@@ -14,6 +14,13 @@ public class Category {
 
     private String name;
 
+    // Constructori
+    public Category() {}
+
+    public Category(String name) {
+        this.name = name;
+    }
+
     // Getters și Setters
     public Long getId() {
         return id;
