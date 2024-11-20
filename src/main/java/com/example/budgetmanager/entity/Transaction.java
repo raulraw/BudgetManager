@@ -1,11 +1,7 @@
 package com.example.budgetmanager.entity;
 
-import jakarta.persistence.Entity;
-import jakarta.persistence.GeneratedValue;
-import jakarta.persistence.GenerationType;
-import jakarta.persistence.Id;
-import jakarta.persistence.ManyToOne;
-import java.math.BigDecimal;
+import com.example.budgetmanager.enums.CategoryEnum;
+import jakarta.persistence.*;
 import java.time.LocalDate;
 
 @Entity
@@ -15,15 +11,16 @@ public class Transaction {
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
 
-    private BigDecimal amount;
+    private Double amount;
+
+    @Enumerated(EnumType.STRING)
+    private CategoryEnum category;  // Schimbat din String în CategoryEnum
+
     private LocalDate date;
+
     private String description;
 
-    @ManyToOne
-    private Category category;
-
-    @ManyToOne
-    private User user;
+    private Long userId;
 
     // Getters și Setters
     public Long getId() {
@@ -34,12 +31,20 @@ public class Transaction {
         this.id = id;
     }
 
-    public BigDecimal getAmount() {
+    public Double getAmount() {
         return amount;
     }
 
-    public void setAmount(BigDecimal amount) {
+    public void setAmount(Double amount) {
         this.amount = amount;
+    }
+
+    public CategoryEnum getCategory() {
+        return category;
+    }
+
+    public void setCategory(CategoryEnum category) {
+        this.category = category;
     }
 
     public LocalDate getDate() {
@@ -58,19 +63,11 @@ public class Transaction {
         this.description = description;
     }
 
-    public Category getCategory() {
-        return category;
+    public Long getUserId() {
+        return userId;
     }
 
-    public void setCategory(Category category) {
-        this.category = category;
-    }
-
-    public User getUser() {
-        return user;
-    }
-
-    public void setUser(User user) {
-        this.user = user;
+    public void setUserId(Long userId) {
+        this.userId = userId;
     }
 }
