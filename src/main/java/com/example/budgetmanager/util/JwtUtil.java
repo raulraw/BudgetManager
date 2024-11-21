@@ -3,14 +3,17 @@ package com.example.budgetmanager.util;
 import io.jsonwebtoken.Claims;
 import io.jsonwebtoken.Jwts;
 import io.jsonwebtoken.SignatureAlgorithm;
+import io.jsonwebtoken.security.Keys;
 import org.springframework.stereotype.Component;
 
+import javax.crypto.SecretKey;
 import java.util.Date;
 
 @Component
 public class JwtUtil {
 
-    private final String SECRET_KEY = "secret"; // Folosește o cheie secretă mai puternică pentru producție
+    // Folosește o cheie generată pentru HS256
+    private final SecretKey SECRET_KEY = Keys.secretKeyFor(SignatureAlgorithm.HS256);
 
     // Generare Token
     public String generateToken(String username) {
@@ -18,7 +21,7 @@ public class JwtUtil {
                 .setSubject(username)
                 .setIssuedAt(new Date())
                 .setExpiration(new Date(System.currentTimeMillis() + 1000 * 60 * 60 * 10)) // Valabilitate: 10 ore
-                .signWith(SignatureAlgorithm.HS256, SECRET_KEY)
+                .signWith(SECRET_KEY)
                 .compact();
     }
 
@@ -39,8 +42,9 @@ public class JwtUtil {
 
     // Extrage toate datele din token
     private Claims extractClaims(String token) {
-        return Jwts.parser()
+        return Jwts.parserBuilder() // Folosește parserBuilder() pentru a evita dependențele învechite
                 .setSigningKey(SECRET_KEY)
+                .build()
                 .parseClaimsJws(token)
                 .getBody();
     }
