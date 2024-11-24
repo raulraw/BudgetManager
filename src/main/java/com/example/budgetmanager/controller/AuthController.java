@@ -1,14 +1,18 @@
 package com.example.budgetmanager.controller;
 
 import com.example.budgetmanager.dto.AuthRequest;
+import com.example.budgetmanager.entity.Expense;
 import com.example.budgetmanager.util.JwtUtil;
 import com.example.budgetmanager.service.UserService;
+import org.springframework.http.HttpStatus;
+import org.springframework.http.ResponseEntity;
 import org.springframework.security.authentication.AuthenticationManager;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
 import org.springframework.security.core.userdetails.UserDetails;
 import org.springframework.security.core.userdetails.UserDetailsService;
 import org.springframework.web.bind.annotation.*;
 
+import java.util.List;
 import java.util.Map;
 
 @RestController
