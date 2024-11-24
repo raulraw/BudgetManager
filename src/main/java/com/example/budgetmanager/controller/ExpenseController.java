@@ -95,4 +95,15 @@ public class ExpenseController {
             return new ResponseEntity<>(HttpStatus.INTERNAL_SERVER_ERROR);
         }
     }
+    //Afisare pentru fiecare categorie toate cheltuielile asociate
+    @GetMapping("/user/{userId}/details")
+    public ResponseEntity<Map<String, List<Expense>>> getExpensesByCategory(@PathVariable Long userId) {
+        try {
+            Map<String, List<Expense>> expensesByCategory = expenseService.getExpensesGroupedByCategory(userId);
+            return new ResponseEntity<>(expensesByCategory, HttpStatus.OK);
+        } catch (Exception e) {
+            e.printStackTrace();
+            return new ResponseEntity<>(HttpStatus.INTERNAL_SERVER_ERROR);
+        }
+    }
 }

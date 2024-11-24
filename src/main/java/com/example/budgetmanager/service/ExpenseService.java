@@ -73,6 +73,19 @@ public class ExpenseService {
         }
     }
 
+    //grupează cheltuielile după categorie și returnează toate detaliile necesare
+    public Map<String, List<Expense>> getExpensesGroupedByCategory(Long userId) {
+        List<Expense> expenses = expenseRepository.findByUserId(userId);
+
+        if (expenses == null || expenses.isEmpty()) {
+            throw new RuntimeException("No expenses found for user with ID: " + userId);
+        }
+
+        // Convertim categoria (CategoryEnum) în String pentru a se potrivi cu Map<String, List<Expense>>
+        return expenses.stream()
+                .collect(Collectors.groupingBy(expense -> expense.getCategory().toString()));
+    }
+
     // Ștergerea unei cheltuieli pentru un utilizator specific
     public void deleteExpense(Long userId, Long id) {
         Optional<Expense> existingExpense = expenseRepository.findById(id);
@@ -111,4 +124,5 @@ public class ExpenseService {
                         Collectors.summingDouble(Expense::getAmount)
                 ));
     }
+
 }
