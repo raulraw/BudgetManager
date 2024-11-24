@@ -35,6 +35,11 @@ public class UserService {
         return userRepository.findById(id);
     }
 
+    // Găsește un utilizator după Username
+    public Optional<User> findUserByUsername(String username) {
+        return Optional.ofNullable(userRepository.findByUsername(username)); // Returnează un Optional
+    }
+
     // Actualizează un utilizator existent
     public Optional<User> updateUser(Long id, User userDetails) {
         return userRepository.findById(id).map(user -> {
