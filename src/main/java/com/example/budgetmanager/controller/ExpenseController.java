@@ -8,6 +8,7 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
+import java.util.Map;
 import java.util.Optional;
 
 @RestController
@@ -76,6 +77,22 @@ public class ExpenseController {
             return new ResponseEntity<>(HttpStatus.NO_CONTENT);
         } catch (RuntimeException e) {
             return new ResponseEntity<>(HttpStatus.FORBIDDEN); // Dacă utilizatorul nu are permisiunea de a șterge
+        }
+    }
+
+    @GetMapping("/user/{userId}/categories")
+    public ResponseEntity<Map<String, Double>> getTotalExpensesByCategory(@PathVariable Long userId) {
+        return new ResponseEntity<>(expenseService.getTotalExpensesByCategory(userId), HttpStatus.OK);
+    }
+
+    @GetMapping("/user/{userId}/months")
+    public ResponseEntity<Map<Integer, Double>> getTotalExpensesByMonth(@PathVariable Long userId) {
+        try {
+            Map<Integer, Double> expensesByMonth = expenseService.getTotalExpensesByMonth(userId);
+            return new ResponseEntity<>(expensesByMonth, HttpStatus.OK);
+        } catch (Exception e) {
+            e.printStackTrace();
+            return new ResponseEntity<>(HttpStatus.INTERNAL_SERVER_ERROR);
         }
     }
 }

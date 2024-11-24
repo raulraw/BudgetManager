@@ -7,8 +7,11 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 import com.example.budgetmanager.entity.User;
 
+import java.util.HashMap;
 import java.util.List;
 import java.util.Optional;
+import java.util.Map;
+import java.util.stream.Collectors;
 
 @Service
 public class ExpenseService {
@@ -83,5 +86,29 @@ public class ExpenseService {
         } else {
             throw new RuntimeException("Expense not found");
         }
+    }
+    //Afisarea cheltuielilor dupa categorie specifica
+    public Map<String, Double> getTotalExpensesByCategory(Long userId) {
+        List<Object[]> results = expenseRepository.findTotalExpensesByCategory(userId);
+        Map<String, Double> categoryTotals = new HashMap<>();
+        for (Object[] result : results) {
+            categoryTotals.put(result[0].toString(), (Double) result[1]);
+        }
+        return categoryTotals;
+    }
+
+    //Afisarea cheltuielilor pentru o luna specifica
+    public Map<Integer, Double> getTotalExpensesByMonth(Long userId) {
+        List<Expense> expenses = expenseRepository.findByUserId(userId);
+
+        if (expenses == null || expenses.isEmpty()) {
+            return new HashMap<>(); // Returnează un map gol dacă nu sunt cheltuieli
+        }
+
+        return expenses.stream()
+                .collect(Collectors.groupingBy(
+                        expense -> expense.getDate().getMonthValue(),
+                        Collectors.summingDouble(Expense::getAmount)
+                ));
     }
 }
