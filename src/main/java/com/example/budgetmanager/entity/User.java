@@ -20,7 +20,14 @@ public class User {
     private String password;
 
     @Column(nullable = false)
+    private String fullName;
+
+    @Column(nullable = false)
     private int role; // 1 pentru USER, 2 pentru ADMIN
+
+    @OneToOne(cascade = CascadeType.ALL, orphanRemoval = true)
+    @JoinColumn(name = "budget_id")
+    private Budget budget;
 
     // Constructor implicit
     public User() {
@@ -32,6 +39,16 @@ public class User {
         this.email = email;
         this.password = password;
         this.role = role;
+        this.fullName = fullName;
+    }
+
+    // Getter și Setter pentru Full Name
+    public String getFullName() {
+        return fullName;
+    }
+
+    public void setFullName(String fullName) {
+        this.fullName = fullName;
     }
 
     // Getter și Setter pentru ID
@@ -59,6 +76,14 @@ public class User {
 
     public void setEmail(String email) {
         this.email = email;
+    }
+
+    public Budget getBudget() {
+        return budget;
+    }
+
+    public void setBudget(Budget budget) {
+        this.budget = budget;
     }
 
     // Getter și Setter pentru Password
