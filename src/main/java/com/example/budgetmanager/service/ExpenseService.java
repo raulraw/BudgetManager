@@ -1,12 +1,16 @@
 package com.example.budgetmanager.service;
 
+import com.example.budgetmanager.entity.Budget;
 import com.example.budgetmanager.entity.Expense;
 import com.example.budgetmanager.repository.ExpenseRepository;
 import com.example.budgetmanager.repository.UserRepository;
+import org.antlr.v4.runtime.misc.LogManager;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 import com.example.budgetmanager.entity.User;
 
+import java.math.BigDecimal;
+import java.time.LocalDate;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Optional;
@@ -22,6 +26,9 @@ public class ExpenseService {
     @Autowired
     private UserRepository userRepository; // Repository pentru User
 
+    @Autowired
+    private BudgetService budgetService;
+
     // Adăugarea unei noi cheltuieli
     public Expense addExpense(Expense expense) {
         // Verificăm dacă utilizatorul există
@@ -29,7 +36,17 @@ public class ExpenseService {
         if (!user.isPresent()) {
             throw new RuntimeException("User not found");
         }
-        return expenseRepository.save(expense);
+
+        // Salvăm cheltuiala
+        Expense savedExpense = expenseRepository.save(expense);
+
+        // Conversia sumei cheltuielii din Double în BigDecimal
+        BigDecimal expenseAmount = BigDecimal.valueOf(expense.getAmount());
+
+        // Apelul metodei pentru actualizarea bugetului
+        budgetService.updateBudgetAfterExpense(expense.getUserId(), expenseAmount);
+
+        return savedExpense;
     }
 
     // Obținerea tuturor cheltuielilor
@@ -124,5 +141,4 @@ public class ExpenseService {
                         Collectors.summingDouble(Expense::getAmount)
                 ));
     }
-
 }

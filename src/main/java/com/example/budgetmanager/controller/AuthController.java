@@ -47,10 +47,15 @@ public class AuthController {
         // Obținem ID-ul utilizatorului pe baza username-ului
         Long userId = userService.findUserByUsername(authRequest.getUsername()).get().getId();
 
+        String fullName = userService.findUserByUsername(authRequest.getUsername())
+                .orElseThrow(() -> new RuntimeException("User not found"))
+                .getFullName();
+
         // Returnăm atât token-ul cât și userId-ul
         return Map.of(
                 "token", token,
-                "userId", userId
+                "userId", userId,
+                "fullName", fullName
         );
     }
 }

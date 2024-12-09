@@ -1,12 +1,17 @@
 package com.example.budgetmanager.controller;
 
+import com.example.budgetmanager.entity.Budget;
 import com.example.budgetmanager.entity.User;
 import com.example.budgetmanager.service.UserService;
 import com.example.budgetmanager.util.Roles;
+import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
+import java.math.BigDecimal;
 import java.util.List;
+import java.util.Map;
+import java.util.Optional;
 
 @RestController
 @RequestMapping("/api/users")
@@ -27,6 +32,9 @@ public class UserController {
     // 2. Creează un utilizator nou (implicit USER)
     @PostMapping("/register")
     public ResponseEntity<String> registerUser(@RequestBody User user) {
+        if (user.getFullName() == null || user.getFullName().isEmpty()) {
+            return ResponseEntity.badRequest().body("Full Name is required");
+        }
         user.setRole(Roles.USER); // Implicit rol USER
         userService.saveUser(user);
         return ResponseEntity.ok("User registered successfully");
@@ -53,6 +61,27 @@ public class UserController {
     public ResponseEntity<Object> deleteUser(@PathVariable Long id) {
         return userService.deleteUser(id)
                 .map(deleted -> ResponseEntity.noContent().build())
+                .orElse(ResponseEntity.notFound().build());
+    }
+
+    @PostMapping("/{userId}/budget")
+    public ResponseEntity<Budget> setBudget(@PathVariable Long userId, @RequestBody Budget budget) {
+        try {
+            Budget updatedBudget = userService.setBudgetForUser(userId, budget);
+            return ResponseEntity.ok(updatedBudget);
+        } catch (Exception e) {
+            return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(null);
+        }
+    }
+
+    @PutMapping("/{userId}/name")
+    public ResponseEntity<User> updateUserName(
+            @PathVariable Long userId,
+            @RequestBody Map<String, String> requestBody) {
+        String newName = requestBody.get("name");
+        Optional<User> updatedUser = userService.updateUserName(userId, newName);
+
+        return updatedUser.map(ResponseEntity::ok)
                 .orElse(ResponseEntity.notFound().build());
     }
 }
