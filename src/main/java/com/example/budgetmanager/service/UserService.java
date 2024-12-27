@@ -5,20 +5,27 @@ import com.example.budgetmanager.entity.User;
 import com.example.budgetmanager.repository.UserRepository;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
+import org.springframework.beans.factory.annotation.Autowired;
 
 import java.math.BigDecimal;
+import java.time.LocalDate;
 import java.util.List;
 import java.util.Optional;
 
 @Service
 public class UserService {
 
+
+    private final ExpenseService expenseService;
     private final UserRepository userRepository;
     private final PasswordEncoder passwordEncoder;
+    private final BudgetService budgetService;
 
-    public UserService(UserRepository userRepository, PasswordEncoder passwordEncoder) {
+    public UserService(UserRepository userRepository, PasswordEncoder passwordEncoder, ExpenseService expenseService, BudgetService budgetService) {
         this.userRepository = userRepository;
         this.passwordEncoder = passwordEncoder;
+        this.expenseService = expenseService;
+        this.budgetService = budgetService;
     }
 
     // Găsește toți utilizatorii
@@ -61,23 +68,40 @@ public class UserService {
     }
 
     //setam un buget pentru utilizator
-    public Budget setBudgetForUser(Long userId, Budget budget) {
+    public Budget setBudgetForUser(Long userId, Budget newBudget) {
+        // Găsește utilizatorul
         User user = userRepository.findById(userId).orElseThrow(() -> new RuntimeException("User not found"));
 
-        // Creăm sau actualizăm bugetul utilizatorului
-        Budget existingBudget = user.getBudget();
-        if (existingBudget == null) {
-            budget.setRemainingAmount(budget.getAmount()); // Inițializăm suma rămasă
-            user.setBudget(budget);
-        } else {
-            existingBudget.setAmount(budget.getAmount());
-            existingBudget.setResetDay(budget.getResetDay());
-            existingBudget.setRemainingAmount(budget.getAmount()); // Resetează suma rămasă la noul buget
+        // Găsește bugetul existent
+        Budget currentBudget = user.getBudget();
+        if (currentBudget == null) {
+            currentBudget = new Budget();
+            user.setBudget(currentBudget);
         }
 
-        // Salvăm modificările
+        // Setează noile valori ale bugetului
+        currentBudget.setAmount(newBudget.getAmount());
+        currentBudget.setResetDay(newBudget.getResetDay());
+
+        // Calculează totalul cheltuielilor pentru perioada respectivă
+        LocalDate today = LocalDate.now();
+        int resetDay = newBudget.getResetDay();
+        LocalDate periodStart = today.withDayOfMonth(resetDay).isAfter(today)
+                ? today.withDayOfMonth(resetDay).minusMonths(1)
+                : today.withDayOfMonth(resetDay);
+        LocalDate periodEnd = periodStart.plusMonths(1);
+
+        // Folosește ExpenseService pentru a calcula totalul cheltuielilor
+        BigDecimal totalExpenses = expenseService.calculateTotalExpenses(userId, periodStart, periodEnd);
+
+        // Recalculăm remainingAmount
+        BigDecimal remainingAmount = newBudget.getAmount().subtract(totalExpenses);
+        currentBudget.setRemainingAmount(remainingAmount);
+
+        // Persistă modificările
         userRepository.save(user);
-        return user.getBudget();
+
+        return currentBudget;
     }
 
 

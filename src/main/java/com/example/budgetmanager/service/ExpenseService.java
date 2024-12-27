@@ -20,8 +20,12 @@ import java.util.stream.Collectors;
 @Service
 public class ExpenseService {
 
+    private final ExpenseRepository expenseRepository;
+
     @Autowired
-    private ExpenseRepository expenseRepository;
+    public ExpenseService(ExpenseRepository expenseRepository) {
+        this.expenseRepository = expenseRepository;
+    }
 
     @Autowired
     private UserRepository userRepository; // Repository pentru User
@@ -67,7 +71,17 @@ public class ExpenseService {
     // Calcularea totalului cheltuielilor
     public Double getTotalExpensesByUserId(Long userId) {
         List<Expense> expenses = getExpensesByUserId(userId);
-        return expenses.stream().mapToDouble(Expense::getAmount).sum();
+
+        // Obține luna și anul curent
+        int currentMonth = LocalDate.now().getMonthValue();
+        int currentYear = LocalDate.now().getYear();
+
+        // Filtrăm cheltuielile pentru a include doar pe cele din luna și anul curent
+        return expenses.stream()
+                .filter(expense -> expense.getDate().getMonthValue() == currentMonth
+                        && expense.getDate().getYear() == currentYear)
+                .mapToDouble(Expense::getAmount)
+                .sum();
     }
 
     // Actualizarea unei cheltuieli pentru un utilizator specific
@@ -140,5 +154,16 @@ public class ExpenseService {
                         expense -> expense.getDate().getMonthValue(),
                         Collectors.summingDouble(Expense::getAmount)
                 ));
+    }
+
+    public BigDecimal calculateTotalExpenses(Long userId, LocalDate startDate, LocalDate endDate) {
+        List<Expense> expenses = expenseRepository.findByUserIdAndDateBetween(userId, startDate, endDate);
+        BigDecimal totalExpenses = BigDecimal.ZERO;
+
+        for (Expense expense : expenses) {
+            totalExpenses = totalExpenses.add(BigDecimal.valueOf(expense.getAmount()));
+        }
+
+        return totalExpenses;
     }
 }
