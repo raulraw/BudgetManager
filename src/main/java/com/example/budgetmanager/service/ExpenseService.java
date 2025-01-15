@@ -1,30 +1,34 @@
 package com.example.budgetmanager.service;
 
+import com.example.budgetmanager.dto.FileModel;
 import com.example.budgetmanager.entity.Budget;
 import com.example.budgetmanager.entity.Expense;
 import com.example.budgetmanager.repository.ExpenseRepository;
+import com.example.budgetmanager.repository.ExpenseRepositoryCustomImpl;
 import com.example.budgetmanager.repository.UserRepository;
-import org.antlr.v4.runtime.misc.LogManager;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 import com.example.budgetmanager.entity.User;
 
 import java.math.BigDecimal;
 import java.time.LocalDate;
-import java.util.HashMap;
-import java.util.List;
-import java.util.Optional;
-import java.util.Map;
+import java.time.Month;
+import java.time.YearMonth;
+import java.util.*;
 import java.util.stream.Collectors;
 
 @Service
 public class ExpenseService {
 
     private final ExpenseRepository expenseRepository;
+    private final ExpenseRepositoryCustomImpl expenseRepositoryCustom;
+    @Autowired
+    private CsvService csvService;
 
     @Autowired
-    public ExpenseService(ExpenseRepository expenseRepository) {
+    public ExpenseService(ExpenseRepository expenseRepository, ExpenseRepositoryCustomImpl expenseRepositoryCustom) {
         this.expenseRepository = expenseRepository;
+        this.expenseRepositoryCustom = expenseRepositoryCustom;
     }
 
     @Autowired
@@ -86,19 +90,38 @@ public class ExpenseService {
 
     // Actualizarea unei cheltuieli pentru un utilizator specific
     public Expense updateExpense(Long userId, Long id, Expense updatedExpense) {
-        Optional<Expense> existingExpense = expenseRepository.findById(id);
-        if (existingExpense.isPresent()) {
-            Expense expense = existingExpense.get();
+        Optional<Expense> existingExpenseOpt = expenseRepository.findById(id);
+        if (existingExpenseOpt.isPresent()) {
+            Expense existingExpense = existingExpenseOpt.get();
+
             // Verificăm dacă cheltuiala aparține utilizatorului
-            if (!expense.getUserId().equals(userId)) {
+            if (!existingExpense.getUserId().equals(userId)) {
                 throw new RuntimeException("User not authorized to update this expense");
             }
+
+            // Obținem utilizatorul pentru actualizarea bugetului
+            User user = userRepository.findById(userId)
+                    .orElseThrow(() -> new RuntimeException("User not found"));
+
+            // Calculăm diferența dintre suma veche și suma nouă
+            BigDecimal oldAmount = BigDecimal.valueOf(existingExpense.getAmount());
+            BigDecimal newAmount = BigDecimal.valueOf(updatedExpense.getAmount());
+            BigDecimal difference = newAmount.subtract(oldAmount);
+
+            // Actualizăm bugetul rămas
+            Budget budget = user.getBudget();
+            BigDecimal updatedRemainingAmount = budget.getRemainingAmount().subtract(difference);
+            budget.setRemainingAmount(updatedRemainingAmount);
+            userRepository.save(user);
+
             // Actualizăm câmpurile cheltuielii
-            expense.setName(updatedExpense.getName());
-            expense.setAmount(updatedExpense.getAmount());
-            expense.setCategory(updatedExpense.getCategory());
-            expense.setDate(updatedExpense.getDate());
-            return expenseRepository.save(expense);
+            existingExpense.setName(updatedExpense.getName());
+            existingExpense.setAmount(updatedExpense.getAmount());
+            existingExpense.setCategory(updatedExpense.getCategory());
+            existingExpense.setDate(updatedExpense.getDate());
+
+            // Salvăm cheltuiala actualizată
+            return expenseRepository.save(existingExpense);
         } else {
             throw new RuntimeException("Expense not found");
         }
@@ -122,10 +145,25 @@ public class ExpenseService {
         Optional<Expense> existingExpense = expenseRepository.findById(id);
         if (existingExpense.isPresent()) {
             Expense expense = existingExpense.get();
+
             // Verificăm dacă cheltuiala aparține utilizatorului
             if (!expense.getUserId().equals(userId)) {
                 throw new RuntimeException("User not authorized to delete this expense");
             }
+
+            // Actualizează bugetul utilizatorului înainte de ștergere
+            User user = userRepository.findById(userId)
+                    .orElseThrow(() -> new RuntimeException("User not found"));
+
+            // Conversii și actualizări pentru BigDecimal
+            BigDecimal remainingAmount = user.getBudget().getRemainingAmount();
+            BigDecimal expenseAmount = BigDecimal.valueOf(expense.getAmount());
+            BigDecimal updatedRemainingAmount = remainingAmount.add(expenseAmount);
+
+            user.getBudget().setRemainingAmount(updatedRemainingAmount);
+            userRepository.save(user);
+
+            // Șterge cheltuiala
             expenseRepository.deleteById(id);
         } else {
             throw new RuntimeException("Expense not found");
@@ -166,4 +204,56 @@ public class ExpenseService {
 
         return totalExpenses;
     }
+
+    public List<Expense> getExpenseByMonths( List<String> selectedMonths) {
+        LocalDate currentDate = LocalDate.now(); // Data curentă
+        int currentYear = currentDate.getYear(); // Anul curent
+        int currentMonthValue = currentDate.getMonthValue(); // Luna curentă
+
+        List<LocalDate[]> dateRanges = new ArrayList<>();
+
+        for (String selectedMonth : selectedMonths) {
+            // Convertim luna din input într-un obiect Month
+            String monthStr = selectedMonth.toUpperCase(); // Convertim în majuscule
+            Month month;
+            try {
+                month = Month.valueOf(monthStr);
+            } catch (IllegalArgumentException e) {
+                throw new IllegalArgumentException("Luna '" + monthStr + "' nu este validă.");
+            }
+
+            // Calculăm anul pe baza lunii curente
+            int year = currentYear;
+            if (month.getValue() > currentMonthValue) {
+                year--; // Dacă luna este înainte de luna curentă, folosim anul anterior
+            }
+
+            // Construim intervalul de început și sfârșit pentru lună
+            YearMonth yearMonth = YearMonth.of(year, month);
+            LocalDate startOfMonth = yearMonth.atDay(1);
+            LocalDate endOfMonth = yearMonth.atEndOfMonth();
+
+            dateRanges.add(new LocalDate[]{startOfMonth, endOfMonth});
+        }
+
+        // Apelăm metoda din repository cu intervalele calculate
+        return expenseRepositoryCustom.findExpensesByDateRanges(dateRanges);
+    }
+
+    public List<String[]> getExpensesRows(List<Expense> allExpenses){
+        List<String[]> rows = new ArrayList<>();
+        rows.add(new String[]{"Name","Category","Date","Amount"});
+
+        for (Expense expense : allExpenses) {
+            rows.add(new String[]{expense.getName(),expense.getCategory().toString(),expense.getDate().toString(),expense.getAmount().toString()});
+        }
+        return rows;
+    }
+
+    public FileModel GetExpensesCsv(List<String> selectedMonths){
+        List<Expense> expenses = getExpenseByMonths(selectedMonths);
+        List<String[]> data = getExpensesRows(expenses);
+        return csvService.generateCsvBase64(data);
+    }
+
 }

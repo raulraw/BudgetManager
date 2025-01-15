@@ -47,7 +47,7 @@ public class BudgetService {
                 );
 
                 // Recalculăm remainingAmount
-                BigDecimal remainingAmount = totalBudget.subtract(totalExpenses).subtract(expenseAmount);
+                BigDecimal remainingAmount = totalBudget.subtract(totalExpenses);
 
                 // Actualizăm bugetul
                 user.getBudget().setRemainingAmount(remainingAmount);

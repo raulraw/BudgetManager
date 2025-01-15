@@ -1,15 +1,17 @@
 package com.example.budgetmanager.controller;
 
+import com.example.budgetmanager.dto.FileModel;
 import com.example.budgetmanager.entity.Expense;
+import com.example.budgetmanager.service.CsvService;
 import com.example.budgetmanager.service.ExpenseService;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.http.HttpHeaders;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
-import java.util.List;
-import java.util.Map;
-import java.util.Optional;
+import java.io.File;
+import java.util.*;
 
 @RestController
 @RequestMapping("/api/expenses")
@@ -17,6 +19,8 @@ public class ExpenseController {
 
     @Autowired
     private ExpenseService expenseService;
+    @Autowired
+    private CsvService csvService;
 
     // Adăugarea unei noi cheltuieli
     @PostMapping
@@ -105,5 +109,13 @@ public class ExpenseController {
             e.printStackTrace();
             return new ResponseEntity<>(HttpStatus.INTERNAL_SERVER_ERROR);
         }
+    }
+
+
+    @PostMapping("/generateCsv")
+    public ResponseEntity<FileModel> generateCsv(@RequestParam List<String> selectedMonths) {
+        FileModel file = expenseService.GetExpensesCsv(selectedMonths);
+
+        return ResponseEntity.ok(file);
     }
 }

@@ -18,4 +18,6 @@ public interface ExpenseRepository extends JpaRepository<Expense, Long> {
     @Query("SELECT FUNCTION('MONTH', e.date), SUM(e.amount) FROM Expense e WHERE e.userId = :userId GROUP BY FUNCTION('MONTH', e.date)")
     List<Object[]> findTotalExpensesByMonth(Long userId);
     List<Expense> findByUserIdAndDateBetween(Long userId, LocalDate startDate, LocalDate endDate);
+
+    List<Expense> findAllByDateBetween(LocalDate startDate, LocalDate endDate);
 }
